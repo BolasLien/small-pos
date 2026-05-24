@@ -7,10 +7,11 @@ type ProductCardProps = {
 };
 
 export const ProductCard = ({ product, cartQuantity, onSelect }: ProductCardProps) => {
-  const { name, series, price, stock, imageUrl } = product;
+  const { name, price, stock, imageUrl } = product;
   const isSoldOut = stock <= 0;
   const isMaxed = !isSoldOut && cartQuantity >= stock;
   const isDisabled = isSoldOut || isMaxed;
+  const isLowStock = stock > 0 && stock <= 3;
 
   return (
     <button
@@ -32,9 +33,15 @@ export const ProductCard = ({ product, cartQuantity, onSelect }: ProductCardProp
           </div>
         )}
 
-        <span className="absolute left-1.5 top-1.5 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-medium text-indigo-600 backdrop-blur">
-          {series}
-        </span>
+        {!isSoldOut && (
+          <span
+            className={`absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur ${
+              isLowStock ? 'bg-rose-500/90 text-white' : 'bg-white/85 text-gray-700'
+            }`}
+          >
+            庫存 {stock}
+          </span>
+        )}
 
         {cartQuantity > 0 && (
           <span className="absolute right-1.5 top-1.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-indigo-600 px-1.5 text-xs font-semibold text-white shadow">

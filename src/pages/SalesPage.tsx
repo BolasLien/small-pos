@@ -1,21 +1,38 @@
 import { useMemo, useState } from 'react';
 import { useAppContext } from '../store/AppContext';
 import { useCart } from '../features/sales/hooks/useCart';
+import { useMarketSession } from '../features/sales/hooks/useMarketSession';
 import { ProductCard } from '../components/ProductCard/ProductCard';
 import { CartPanel } from '../components/CartPanel/CartPanel';
 import { PaymentMethodSelector } from '../features/sales/components/PaymentMethodSelector';
+import { SeriesTabs, type SeriesFilter } from '../features/sales/components/SeriesTabs';
+import { MarketSessionBar } from '../features/sales/components/MarketSessionBar';
 import type { PaymentMethod } from '../features/sales/types';
+import type { ProductSeries } from '../features/products/types';
 
 export const SalesPage = () => {
   const { productsApi, salesApi } = useAppContext();
   const { products, adjustStock } = productsApi;
   const { addSale } = salesApi;
+  const { market, setMarket } = useMarketSession();
   const { cartItems, totalAmount, addToCart, increase, decrease, remove, clear } = useCart();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [seriesFilter, setSeriesFilter] = useState<SeriesFilter>('all');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const activeProducts = useMemo(() => products.filter((p) => p.isActive), [products]);
+
+  const availableSeries = useMemo<ProductSeries[]>(() => {
+    const set = new Set<ProductSeries>();
+    activeProducts.forEach((p) => set.add(p.series));
+    return [...set];
+  }, [activeProducts]);
+
+  const filteredProducts = useMemo(() => {
+    if (seriesFilter === 'all') return activeProducts;
+    return activeProducts.filter((p) => p.series === seriesFilter);
+  }, [activeProducts, seriesFilter]);
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -33,7 +50,7 @@ export const SalesPage = () => {
 
   const handleCheckout = () => {
     if (cartItems.length === 0 || !paymentMethod) return;
-    addSale(paymentMethod, cartItems);
+    addSale(paymentMethod, cartItems, market);
     cartItems.forEach((it) => adjustStock(it.productId, -it.quantity));
     clear();
     setPaymentMethod(null);
@@ -43,19 +60,31 @@ export const SalesPage = () => {
   const isCheckoutDisabled = cartItems.length === 0 || !paymentMethod;
 
   return (
-    <div className="space-y-5 pb-40">
+    <div className="space-y-4 pb-40">
       <header>
         <h1 className="text-xl font-bold text-gray-900">銷售</h1>
         <p className="text-xs text-gray-500">點商品加入交易，選好支付方式即可結帳</p>
       </header>
 
-      {activeProducts.length === 0 ? (
+      <MarketSessionBar market={market} onChange={setMarket} />
+
+      {availableSeries.length > 1 && (
+        <SeriesTabs
+          seriess={availableSeries}
+          value={seriesFilter}
+          onChange={setSeriesFilter}
+        />
+      )}
+
+      {filteredProducts.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
-          目前沒有上架商品，請至「商品」新增
+          {activeProducts.length === 0
+            ? '目前沒有上架商品，請至「商品」新增'
+            : '此系列目前沒有商品'}
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          {activeProducts.map((p) => {
+          {filteredProducts.map((p) => {
             const cartQuantity = cartItems.find((it) => it.productId === p.id)?.quantity ?? 0;
             return (
               <ProductCard

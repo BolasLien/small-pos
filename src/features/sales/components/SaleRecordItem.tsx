@@ -7,11 +7,19 @@ type SaleRecordItemProps = {
 };
 
 export const SaleRecordItem = ({ record, onDelete }: SaleRecordItemProps) => {
+  const hasMarket = Boolean(record.marketName || record.marketLocation);
+
   return (
     <article className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
       <header className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-sm text-gray-500">{formatDateTime(record.createdAt)}</p>
+          {hasMarket && (
+            <p className="mt-0.5 truncate text-xs text-indigo-600">
+              📍 {record.marketName || '未命名市集'}
+              {record.marketLocation ? ` ・ ${record.marketLocation}` : ''}
+            </p>
+          )}
           <p className="mt-1 text-xs text-gray-500">
             支付方式：<span className="text-gray-700">{record.paymentMethod}</span>
           </p>

@@ -10,10 +10,17 @@ export type CartItem = {
   subtotal: number;
 };
 
+export type MarketInfo = {
+  name: string;
+  location: string;
+};
+
 export type SaleRecord = {
   id: string;
   createdAt: string;
   paymentMethod: PaymentMethod;
   totalAmount: number;
   items: CartItem[];
+  marketName?: string;
+  marketLocation?: string;
 };
