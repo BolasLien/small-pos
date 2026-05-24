@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { PRODUCT_SERIES, type Product, type ProductDraft } from '../types';
-import { resizeImageToDataUrl } from '../../../utils/image';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useAppContext } from '../../../store/AppContext';
+import { type Product, type ProductDraft } from '../types';
+import { IMAGE_MAX_BYTES, formatBytes, resizeImageToDataUrl } from '../../../utils/image';
 
 type ProductFormProps = {
   initial?: Product | null;
@@ -10,7 +11,7 @@ type ProductFormProps = {
 
 const emptyDraft: ProductDraft = {
   name: '',
-  series: '耳環',
+  series: '',
   price: 0,
   stock: 0,
   isActive: true,
@@ -18,22 +19,32 @@ const emptyDraft: ProductDraft = {
 };
 
 export const ProductForm = ({ initial, onSubmit, onCancel }: ProductFormProps) => {
+  const { seriesApi } = useAppContext();
+  const { seriess } = seriesApi;
+
   const [draft, setDraft] = useState<ProductDraft>(emptyDraft);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errorText, setErrorText] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const seriesOptions = useMemo(() => {
+    const opts = [...seriess];
+    if (draft.series && !opts.includes(draft.series)) opts.push(draft.series);
+    return opts;
+  }, [seriess, draft.series]);
 
   useEffect(() => {
     if (initial) {
       const { name, series, price, stock, isActive, imageUrl } = initial;
       setDraft({ name, series, price, stock, isActive, imageUrl });
     } else {
-      setDraft(emptyDraft);
+      setDraft({ ...emptyDraft, series: seriess[0] ?? '' });
     }
-    setErrorText(null);
-  }, [initial]);
+    setImageError(null);
+  }, [initial, seriess]);
 
-  const isInvalid = draft.name.trim() === '' || draft.price < 0 || draft.stock < 0;
+  const isInvalid =
+    draft.name.trim() === '' || draft.series === '' || draft.price < 0 || draft.stock < 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,13 +56,19 @@ export const ProductForm = ({ initial, onSubmit, onCancel }: ProductFormProps) =
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    setErrorText(null);
+    setImageError(null);
     setIsProcessing(true);
     try {
-      const dataUrl = await resizeImageToDataUrl(file);
+      const { dataUrl, bytes, isOversize } = await resizeImageToDataUrl(file);
+      if (isOversize) {
+        setImageError(
+          `圖片壓縮後仍為 ${formatBytes(bytes)}，超過上限 ${formatBytes(IMAGE_MAX_BYTES)}，請換一張較小的圖片`,
+        );
+        return;
+      }
       setDraft((d) => ({ ...d, imageUrl: dataUrl }));
     } catch {
-      setErrorText('圖片處理失敗，請換一張試試');
+      setImageError('圖片處理失敗，請換一張試試');
     } finally {
       setIsProcessing(false);
     }
@@ -59,6 +76,7 @@ export const ProductForm = ({ initial, onSubmit, onCancel }: ProductFormProps) =
 
   const handleRemoveImage = () => {
     setDraft((d) => ({ ...d, imageUrl: undefined }));
+    setImageError(null);
   };
 
   return (
@@ -68,7 +86,12 @@ export const ProductForm = ({ initial, onSubmit, onCancel }: ProductFormProps) =
       </h2>
 
       <div className="space-y-2">
-        <span className="text-sm text-gray-600">商品圖片</span>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600">商品圖片</span>
+          <span className="text-[10px] text-gray-400">
+            上限 {formatBytes(IMAGE_MAX_BYTES)}
+          </span>
+        </div>
         <div className="flex items-center gap-3">
           <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50">
             {draft.imageUrl ? (
@@ -104,7 +127,7 @@ export const ProductForm = ({ initial, onSubmit, onCancel }: ProductFormProps) =
             />
           </div>
         </div>
-        {errorText && <p className="text-xs text-rose-500">{errorText}</p>}
+        {imageError && <p className="text-xs text-rose-500">{imageError}</p>}
       </div>
 
       <label className="block space-y-1">
@@ -123,12 +146,12 @@ export const ProductForm = ({ initial, onSubmit, onCancel }: ProductFormProps) =
         <span className="text-sm text-gray-600">系列</span>
         <select
           value={draft.series}
-          onChange={(e) =>
-            setDraft((d) => ({ ...d, series: e.target.value as ProductDraft['series'] }))
-          }
+          onChange={(e) => setDraft((d) => ({ ...d, series: e.target.value }))}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none"
+          required
         >
-          {PRODUCT_SERIES.map((s) => (
+          {seriesOptions.length === 0 && <option value="">請先新增系列</option>}
+          {seriesOptions.map((s) => (
             <option key={s} value={s}>
               {s}
             </option>

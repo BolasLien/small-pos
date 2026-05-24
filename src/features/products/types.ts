@@ -1,6 +1,6 @@
-export const PRODUCT_SERIES = ['耳環', '戒指', '手鍊', '項鍊', '其他'] as const;
+export const DEFAULT_SERIES: string[] = ['耳環', '戒指', '手鍊', '項鍊', '其他'];
 
-export type ProductSeries = (typeof PRODUCT_SERIES)[number];
+export type ProductSeries = string;
 
 export type Product = {
   id: string;

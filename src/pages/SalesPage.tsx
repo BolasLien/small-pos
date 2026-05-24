@@ -8,7 +8,6 @@ import { PaymentMethodSelector } from '../features/sales/components/PaymentMetho
 import { SeriesTabs, type SeriesFilter } from '../features/sales/components/SeriesTabs';
 import { MarketSessionBar } from '../features/sales/components/MarketSessionBar';
 import type { PaymentMethod } from '../features/sales/types';
-import type { ProductSeries } from '../features/products/types';
 
 export const SalesPage = () => {
   const { productsApi, salesApi } = useAppContext();
@@ -18,19 +17,19 @@ export const SalesPage = () => {
   const { cartItems, totalAmount, addToCart, increase, decrease, remove, clear } = useCart();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
-  const [seriesFilter, setSeriesFilter] = useState<SeriesFilter>('all');
+  const [seriesFilter, setSeriesFilter] = useState<SeriesFilter>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const activeProducts = useMemo(() => products.filter((p) => p.isActive), [products]);
 
-  const availableSeries = useMemo<ProductSeries[]>(() => {
-    const set = new Set<ProductSeries>();
+  const availableSeries = useMemo<string[]>(() => {
+    const set = new Set<string>();
     activeProducts.forEach((p) => set.add(p.series));
     return [...set];
   }, [activeProducts]);
 
   const filteredProducts = useMemo(() => {
-    if (seriesFilter === 'all') return activeProducts;
+    if (seriesFilter === null) return activeProducts;
     return activeProducts.filter((p) => p.series === seriesFilter);
   }, [activeProducts, seriesFilter]);
 

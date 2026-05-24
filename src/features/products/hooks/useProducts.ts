@@ -38,6 +38,8 @@ export type UseProductsResult = {
   updateProduct: (id: string, draft: ProductDraft) => void;
   deleteProduct: (id: string) => void;
   adjustStock: (id: string, delta: number) => void;
+  countBySeries: (series: string) => number;
+  bulkRenameSeries: (oldName: string, newName: string) => void;
 };
 
 export const useProducts = (): UseProductsResult => {
@@ -65,5 +67,24 @@ export const useProducts = (): UseProductsResult => {
     );
   }, []);
 
-  return { products, addProduct, updateProduct, deleteProduct, adjustStock };
+  const countBySeries = useCallback(
+    (series: string) => products.filter((p) => p.series === series).length,
+    [products],
+  );
+
+  const bulkRenameSeries = useCallback((oldName: string, newName: string) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.series === oldName ? { ...p, series: newName } : p)),
+    );
+  }, []);
+
+  return {
+    products,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    adjustStock,
+    countBySeries,
+    bulkRenameSeries,
+  };
 };
