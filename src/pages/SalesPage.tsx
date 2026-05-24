@@ -10,7 +10,7 @@ import { MarketSessionBar } from '../features/sales/components/MarketSessionBar'
 import type { PaymentMethod } from '../features/sales/types';
 
 export const SalesPage = () => {
-  const { productsApi, salesApi } = useAppContext();
+  const { productsApi, salesApi, seriesApi } = useAppContext();
   const { products, adjustStock } = productsApi;
   const { addSale } = salesApi;
   const { market, setMarket } = useMarketSession();
@@ -23,10 +23,12 @@ export const SalesPage = () => {
   const activeProducts = useMemo(() => products.filter((p) => p.isActive), [products]);
 
   const availableSeries = useMemo<string[]>(() => {
-    const set = new Set<string>();
-    activeProducts.forEach((p) => set.add(p.series));
-    return [...set];
-  }, [activeProducts]);
+    const present = new Set<string>();
+    activeProducts.forEach((p) => present.add(p.series));
+    const ordered = seriesApi.seriess.filter((s) => present.has(s));
+    const orphans = [...present].filter((s) => !seriesApi.seriess.includes(s));
+    return [...ordered, ...orphans];
+  }, [activeProducts, seriesApi.seriess]);
 
   const filteredProducts = useMemo(() => {
     if (seriesFilter === null) return activeProducts;

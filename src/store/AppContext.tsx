@@ -13,6 +13,7 @@ export type SeriesActions = {
   renameSeries: (oldName: string, newName: string) => SeriesResult;
   deleteSeries: (name: string) => SeriesResult;
   ensureSeries: UseSeriesResult['ensureSeries'];
+  reorderSeries: UseSeriesResult['reorderSeries'];
   countBySeries: UseProductsResult['countBySeries'];
 };
 
@@ -63,6 +64,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       renameSeries,
       deleteSeries,
       ensureSeries: rawSeries.ensureSeries,
+      reorderSeries: rawSeries.reorderSeries,
       countBySeries: productsApi.countBySeries,
     }),
     [rawSeries, renameSeries, deleteSeries, productsApi.countBySeries],

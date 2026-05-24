@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { arrayMove } from '@dnd-kit/sortable';
 import { readStorage, writeStorage } from '../../../utils/storage';
 import { DEFAULT_SERIES } from '../types';
 
@@ -12,6 +13,7 @@ export type UseSeriesResult = {
   renameSeriesRaw: (oldName: string, newName: string) => SeriesResult;
   deleteSeriesRaw: (name: string) => void;
   ensureSeries: (name: string) => void;
+  reorderSeries: (fromIndex: number, toIndex: number) => void;
 };
 
 const normalize = (s: string): string => s.trim();
@@ -58,5 +60,27 @@ export const useSeries = (): UseSeriesResult => {
     setSeriess((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
   }, []);
 
-  return { seriess, addSeries, renameSeriesRaw, deleteSeriesRaw, ensureSeries };
+  const reorderSeries = useCallback((fromIndex: number, toIndex: number) => {
+    setSeriess((prev) => {
+      if (
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= prev.length ||
+        toIndex >= prev.length ||
+        fromIndex === toIndex
+      ) {
+        return prev;
+      }
+      return arrayMove(prev, fromIndex, toIndex);
+    });
+  }, []);
+
+  return {
+    seriess,
+    addSeries,
+    renameSeriesRaw,
+    deleteSeriesRaw,
+    ensureSeries,
+    reorderSeries,
+  };
 };
