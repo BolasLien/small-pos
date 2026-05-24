@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
 import { readStorage, writeStorage } from '../../../utils/storage';
 import { createId } from '../../../utils/id';
-import type { Product, ProductDraft } from '../types';
+import type { Product, ProductDraft, ProductSeries } from '../types';
 
 const STORAGE_KEY = 'small-pos:products';
 const SEEDED_FLAG = 'small-pos:products:seeded';
 
 const SEED_PRODUCTS: Product[] = [
-  { id: 'seed-1', name: '珍珠耳環', category: '耳環', price: 280, stock: 10, isActive: true },
-  { id: 'seed-2', name: '銀色戒指', category: '戒指', price: 350, stock: 6, isActive: true },
-  { id: 'seed-3', name: '編織手鍊', category: '手鍊', price: 180, stock: 12, isActive: true },
-  { id: 'seed-4', name: '迷你項鍊', category: '項鍊', price: 420, stock: 5, isActive: true },
+  { id: 'seed-1', name: '珍珠耳環', series: '耳環', price: 280, stock: 10, isActive: true },
+  { id: 'seed-2', name: '銀色戒指', series: '戒指', price: 350, stock: 6, isActive: true },
+  { id: 'seed-3', name: '編織手鍊', series: '手鍊', price: 180, stock: 12, isActive: true },
+  { id: 'seed-4', name: '迷你項鍊', series: '項鍊', price: 420, stock: 5, isActive: true },
 ];
+
+type LegacyProduct = Omit<Product, 'series'> & {
+  series?: ProductSeries;
+  category?: ProductSeries;
+};
 
 const loadInitial = (): Product[] => {
   const seeded = readStorage<boolean>(SEEDED_FLAG, false);
@@ -20,7 +25,11 @@ const loadInitial = (): Product[] => {
     writeStorage(SEEDED_FLAG, true);
     return SEED_PRODUCTS;
   }
-  return readStorage<Product[]>(STORAGE_KEY, []);
+  const raw = readStorage<LegacyProduct[]>(STORAGE_KEY, []);
+  return raw.map(({ category, series, ...rest }) => ({
+    ...rest,
+    series: series ?? category ?? '其他',
+  }));
 };
 
 export type UseProductsResult = {

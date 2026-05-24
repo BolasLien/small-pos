@@ -7,14 +7,21 @@ type ProductListItemProps = {
 };
 
 export const ProductListItem = ({ product, onEdit, onDelete }: ProductListItemProps) => {
-  const { name, category, price, stock, isActive } = product;
+  const { name, series, price, stock, isActive, imageUrl } = product;
 
   return (
-    <article className="flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+    <article className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-100">
+        {imageUrl ? (
+          <img src={imageUrl} alt={name} className="h-full w-full object-cover" />
+        ) : (
+          <span className="text-2xl">💎</span>
+        )}
+      </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-600">
-            {category}
+            {series}
           </span>
           <span
             className={`rounded-full px-2 py-0.5 text-xs ${

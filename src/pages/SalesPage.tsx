@@ -54,7 +54,7 @@ export const SalesPage = () => {
           目前沒有上架商品，請至「商品」新增
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {activeProducts.map((p) => {
             const cartQuantity = cartItems.find((it) => it.productId === p.id)?.quantity ?? 0;
             return (
