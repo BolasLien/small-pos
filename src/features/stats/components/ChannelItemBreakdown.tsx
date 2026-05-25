@@ -1,7 +1,8 @@
-import type { ChannelGroup } from '../hooks/useChannelSeriesBreakdown';
+import type { BreakdownMode, ChannelGroup } from '../hooks/useChannelItemBreakdown';
 
-type ChannelSeriesBreakdownProps = {
+type ChannelItemBreakdownProps = {
   groups: ChannelGroup[];
+  mode: BreakdownMode;
 };
 
 const RANK_BADGE_CLASS = (idx: number): string => {
@@ -11,7 +12,12 @@ const RANK_BADGE_CLASS = (idx: number): string => {
   return 'bg-gray-50 text-gray-500';
 };
 
-export const ChannelSeriesBreakdown = ({ groups }: ChannelSeriesBreakdownProps) => {
+const ITEM_PILL_CLASS: Record<BreakdownMode, string> = {
+  series: 'bg-indigo-50 text-indigo-600',
+  product: 'bg-emerald-50 text-emerald-700',
+};
+
+export const ChannelItemBreakdown = ({ groups, mode }: ChannelItemBreakdownProps) => {
   if (groups.length === 0) {
     return (
       <div className="rounded-2xl border border-gray-200 bg-white p-4 text-center text-sm text-gray-500 shadow-sm">
@@ -39,17 +45,19 @@ export const ChannelSeriesBreakdown = ({ groups }: ChannelSeriesBreakdownProps) 
             </span>
           </header>
           <ul className="mt-2 divide-y divide-gray-100 border-t border-gray-100 pt-1">
-            {g.bySeries.map((s) => (
+            {g.byItem.map((it) => (
               <li
-                key={s.series}
+                key={it.key}
                 className="flex items-center justify-between gap-2 py-1.5 text-xs"
               >
-                <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-600">
-                  {s.series}
+                <span
+                  className={`min-w-0 truncate rounded-full px-2 py-0.5 ${ITEM_PILL_CLASS[mode]}`}
+                >
+                  {it.label}
                 </span>
-                <span className="text-gray-700">
-                  {s.quantity} 件
-                  <span className="ml-2 font-semibold text-gray-900">${s.revenue}</span>
+                <span className="shrink-0 text-gray-700">
+                  {it.quantity} 件
+                  <span className="ml-2 font-semibold text-gray-900">${it.revenue}</span>
                 </span>
               </li>
             ))}

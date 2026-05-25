@@ -1,9 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useAppContext } from '../../../store/AppContext';
 import { useYearlyStats } from '../hooks/useYearlyStats';
-import { useChannelSeriesBreakdown } from '../hooks/useChannelSeriesBreakdown';
+import {
+  useChannelItemBreakdown,
+  type BreakdownMode,
+} from '../hooks/useChannelItemBreakdown';
 import { StatCard } from './StatCard';
-import { ChannelSeriesBreakdown } from './ChannelSeriesBreakdown';
+import { ChannelItemBreakdown } from './ChannelItemBreakdown';
+import { BreakdownModeToggle } from './BreakdownModeToggle';
 import { PAYMENT_METHODS, formatChannelLabel } from '../../sales/types';
 import { downloadCsv, toCsv } from '../../../utils/csv';
 
@@ -11,12 +15,24 @@ const currentYear = new Date().getFullYear();
 
 const pad = (n: number): string => n.toString().padStart(2, '0');
 
+const COLUMN_LABEL: Record<BreakdownMode, string> = {
+  series: '系列',
+  product: '商品名稱',
+};
+
+const UNKNOWN_SERIES = '未知系列';
+
 export const YearlyReport = () => {
   const { salesApi, productsApi } = useAppContext();
   const [year, setYear] = useState<number>(currentYear);
+  const [breakdownMode, setBreakdownMode] = useState<BreakdownMode>('series');
 
   const stats = useYearlyStats(salesApi.sales, year);
-  const breakdown = useChannelSeriesBreakdown(stats.yearSales, productsApi.products);
+  const breakdown = useChannelItemBreakdown(
+    stats.yearSales,
+    productsApi.products,
+    breakdownMode,
+  );
 
   const peakMonth = useMemo(
     () => stats.monthSummaries.reduce((max, m) => (m.revenue > max ? m.revenue : max), 0),
@@ -24,7 +40,7 @@ export const YearlyReport = () => {
   );
 
   const handleExport = () => {
-    const headers = ['月份', '通路', '系列', '數量', '收入'];
+    const headers = ['月份', '通路', COLUMN_LABEL[breakdownMode], '數量', '收入'];
     const productMap = new Map(productsApi.products.map((p) => [p.id, p]));
     const rows: (string | number)[][] = [];
 
@@ -33,31 +49,43 @@ export const YearlyReport = () => {
       const monthSales = stats.yearSales.filter(
         (s) => new Date(s.createdAt).getMonth() === m,
       );
-      const grouped = new Map<string, Map<string, { quantity: number; revenue: number }>>();
+      const grouped = new Map<
+        string,
+        Map<string, { label: string; quantity: number; revenue: number }>
+      >();
       monthSales.forEach((s) => {
         const channelLabel =
           formatChannelLabel(s.channelName, s.channelLocation) || '未指定通路';
         const chMap = grouped.get(channelLabel) ?? new Map();
         s.items.forEach((item) => {
-          const series =
-            item.productSeries ?? productMap.get(item.productId)?.series ?? '未知系列';
-          const prev = chMap.get(series) ?? { quantity: 0, revenue: 0 };
+          let key: string;
+          let label: string;
+          if (breakdownMode === 'series') {
+            const series =
+              item.productSeries ?? productMap.get(item.productId)?.series ?? UNKNOWN_SERIES;
+            key = series;
+            label = series;
+          } else {
+            key = item.productId || item.productName;
+            label = item.productName;
+          }
+          const prev = chMap.get(key) ?? { label, quantity: 0, revenue: 0 };
           prev.quantity += item.quantity;
           prev.revenue += item.subtotal;
-          chMap.set(series, prev);
+          chMap.set(key, prev);
         });
         grouped.set(channelLabel, chMap);
       });
-      grouped.forEach((seriesMap, channelLabel) => {
-        seriesMap.forEach((v, series) => {
-          rows.push([monthLabel, channelLabel, series, v.quantity, v.revenue]);
+      grouped.forEach((itemMap, channelLabel) => {
+        itemMap.forEach((v) => {
+          rows.push([monthLabel, channelLabel, v.label, v.quantity, v.revenue]);
         });
       });
     }
 
     if (rows.length === 0) return;
     const csv = toCsv(headers, rows);
-    downloadCsv(`yearly-${year}.csv`, csv);
+    downloadCsv(`yearly-${year}-${breakdownMode}.csv`, csv);
   };
 
   return (
@@ -124,18 +152,23 @@ export const YearlyReport = () => {
       </section>
 
       <section className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700">通路 × 系列（全年）</h2>
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={stats.transactionCount === 0}
-            className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-gray-300"
-          >
-            匯出 CSV
-          </button>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-gray-700">
+            通路 × {breakdownMode === 'series' ? '系列' : '商品'}（全年）
+          </h2>
+          <div className="flex items-center gap-2">
+            <BreakdownModeToggle value={breakdownMode} onChange={setBreakdownMode} />
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={stats.transactionCount === 0}
+              className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-gray-300"
+            >
+              匯出 CSV
+            </button>
+          </div>
         </div>
-        <ChannelSeriesBreakdown groups={breakdown} />
+        <ChannelItemBreakdown groups={breakdown} mode={breakdownMode} />
       </section>
 
       <section className="space-y-2">

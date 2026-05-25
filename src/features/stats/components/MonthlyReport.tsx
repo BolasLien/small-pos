@@ -1,9 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useAppContext } from '../../../store/AppContext';
 import { useMonthlyStats } from '../hooks/useMonthlyStats';
-import { useChannelSeriesBreakdown } from '../hooks/useChannelSeriesBreakdown';
+import {
+  useChannelItemBreakdown,
+  type BreakdownMode,
+} from '../hooks/useChannelItemBreakdown';
 import { StatCard } from './StatCard';
-import { ChannelSeriesBreakdown } from './ChannelSeriesBreakdown';
+import { ChannelItemBreakdown } from './ChannelItemBreakdown';
+import { BreakdownModeToggle } from './BreakdownModeToggle';
 import { PAYMENT_METHODS } from '../../sales/types';
 import { downloadCsv, toCsv } from '../../../utils/csv';
 
@@ -22,12 +26,22 @@ const isAfter = (a: YM, b: YM): boolean =>
 
 const pad = (n: number): string => n.toString().padStart(2, '0');
 
+const COLUMN_LABEL: Record<BreakdownMode, string> = {
+  series: '系列',
+  product: '商品名稱',
+};
+
 export const MonthlyReport = () => {
   const { salesApi, productsApi } = useAppContext();
   const [ym, setYm] = useState<YM>(initialYM);
+  const [breakdownMode, setBreakdownMode] = useState<BreakdownMode>('series');
 
   const stats = useMonthlyStats(salesApi.sales, ym.year, ym.month);
-  const breakdown = useChannelSeriesBreakdown(stats.monthSales, productsApi.products);
+  const breakdown = useChannelItemBreakdown(
+    stats.monthSales,
+    productsApi.products,
+    breakdownMode,
+  );
 
   const isNextDisabled = useMemo(
     () => isAfter(shiftMonth(ym, 1), initialYM),
@@ -35,13 +49,16 @@ export const MonthlyReport = () => {
   );
 
   const handleExport = () => {
-    const headers = ['通路', '系列', '數量', '收入'];
+    const headers = ['通路', COLUMN_LABEL[breakdownMode], '數量', '收入'];
     const rows = breakdown.flatMap((g) =>
-      g.bySeries.map((s) => [g.label, s.series, s.quantity, s.revenue]),
+      g.byItem.map((it) => [g.label, it.label, it.quantity, it.revenue]),
     );
     if (rows.length === 0) return;
     const csv = toCsv(headers, rows);
-    downloadCsv(`monthly-${ym.year}-${pad(ym.month + 1)}.csv`, csv);
+    downloadCsv(
+      `monthly-${ym.year}-${pad(ym.month + 1)}-${breakdownMode}.csv`,
+      csv,
+    );
   };
 
   return (
@@ -78,17 +95,7 @@ export const MonthlyReport = () => {
       </div>
 
       <section className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700">各通路收入</h2>
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={breakdown.length === 0}
-            className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-gray-300"
-          >
-            匯出 CSV
-          </button>
-        </div>
+        <h2 className="text-sm font-semibold text-gray-700">各通路收入</h2>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           {stats.channelBreakdowns.length === 0 ? (
             <p className="py-4 text-center text-sm text-gray-500">本月沒有銷售紀錄</p>
@@ -137,8 +144,23 @@ export const MonthlyReport = () => {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-gray-700">通路 × 系列</h2>
-        <ChannelSeriesBreakdown groups={breakdown} />
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-gray-700">
+            通路 × {breakdownMode === 'series' ? '系列' : '商品'}
+          </h2>
+          <div className="flex items-center gap-2">
+            <BreakdownModeToggle value={breakdownMode} onChange={setBreakdownMode} />
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={breakdown.length === 0}
+              className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-gray-300"
+            >
+              匯出 CSV
+            </button>
+          </div>
+        </div>
+        <ChannelItemBreakdown groups={breakdown} mode={breakdownMode} />
       </section>
 
       <section className="space-y-2">
