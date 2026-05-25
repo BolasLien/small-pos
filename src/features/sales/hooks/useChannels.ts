@@ -69,6 +69,7 @@ export type UseChannelsResult = {
   updateChannel: (id: string, draft: ChannelDraft) => ChannelResult;
   deleteChannel: (id: string) => void;
   reorderChannels: (fromIndex: number, toIndex: number) => void;
+  setChannelArchived: (id: string, isArchived: boolean) => void;
 };
 
 export const useChannels = (): UseChannelsResult => {
@@ -84,8 +85,11 @@ export const useChannels = (): UseChannelsResult => {
       const location = draft.location?.trim() || undefined;
       if (!name) return { isOk: false, reason: '名稱不可空白' };
       const key = makeKey(name, location);
-      const exists = channels.some((c) => makeKey(c.name, c.location) === key);
-      if (exists) return { isOk: false, reason: '已有相同通路' };
+      const existing = channels.find((c) => makeKey(c.name, c.location) === key);
+      if (existing) {
+        const hint = existing.isArchived ? '（目前在已隱藏中，可至管理顯示）' : '';
+        return { isOk: false, reason: `已有相同通路${hint}` };
+      }
       const channel: Channel = { id: createId(), name, location };
       setChannels((prev) => [...prev, channel]);
       return { isOk: true, channel };
@@ -103,7 +107,9 @@ export const useChannels = (): UseChannelsResult => {
         (c) => c.id !== id && makeKey(c.name, c.location) === key,
       );
       if (dup) return { isOk: false, reason: '已有相同通路' };
-      setChannels((prev) => prev.map((c) => (c.id === id ? { id, name, location } : c)));
+      setChannels((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, name, location } : c)),
+      );
       return { isOk: true };
     },
     [channels],
@@ -128,5 +134,16 @@ export const useChannels = (): UseChannelsResult => {
     });
   }, []);
 
-  return { channels, addChannel, updateChannel, deleteChannel, reorderChannels };
+  const setChannelArchived = useCallback((id: string, isArchived: boolean) => {
+    setChannels((prev) => prev.map((c) => (c.id === id ? { ...c, isArchived } : c)));
+  }, []);
+
+  return {
+    channels,
+    addChannel,
+    updateChannel,
+    deleteChannel,
+    reorderChannels,
+    setChannelArchived,
+  };
 };

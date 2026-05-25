@@ -20,6 +20,7 @@ export const ChannelPicker = ({
   onOpenManager,
   onQuickAdd,
 }: ChannelPickerProps) => {
+  const visibleChannels = channels.filter((c) => !c.isArchived);
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newLocation, setNewLocation] = useState('');
@@ -52,13 +53,15 @@ export const ChannelPicker = ({
         </button>
       </header>
 
-      {channels.length === 0 ? (
+      {visibleChannels.length === 0 ? (
         <p className="rounded-lg border border-dashed border-gray-300 p-3 text-center text-xs text-gray-500">
-          還沒有通路，點下方「+ 新增通路」或右上「管理」開始建立
+          {channels.length === 0
+            ? '還沒有通路，點下方「+ 新增通路」或右上「管理」開始建立'
+            : '所有通路目前都已隱藏，至「管理」可重新顯示'}
         </p>
       ) : (
         <div className="-mx-1 flex flex-wrap gap-1.5 px-1">
-          {channels.map((c) => {
+          {visibleChannels.map((c) => {
             const isActive = c.id === currentId;
             return (
               <button

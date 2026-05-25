@@ -36,7 +36,9 @@ export const useCurrentChannel = (channels: Channel[]): UseCurrentChannelResult 
   );
 
   useEffect(() => {
-    if (currentChannelId !== null && !channels.some((c) => c.id === currentChannelId)) {
+    if (currentChannelId === null) return;
+    const matched = channels.find((c) => c.id === currentChannelId);
+    if (!matched || matched.isArchived) {
       setCurrentIdState(null);
     }
   }, [channels, currentChannelId]);

@@ -14,9 +14,10 @@ export type Channel = {
   id: string;
   name: string;
   location?: string;
+  isArchived?: boolean;
 };
 
-export type ChannelDraft = Omit<Channel, 'id'>;
+export type ChannelDraft = Omit<Channel, 'id' | 'isArchived'>;
 
 export type SaleRecord = {
   id: string;

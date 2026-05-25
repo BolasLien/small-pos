@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   DndContext,
   KeyboardSensor,
@@ -33,6 +33,7 @@ type SortableRowProps = {
   onCancelEdit: () => void;
   onChangeName: (s: string) => void;
   onChangeLocation: (s: string) => void;
+  onArchive: () => void;
   onDelete: () => void;
 };
 
@@ -47,6 +48,7 @@ const SortableRow = ({
   onCancelEdit,
   onChangeName,
   onChangeLocation,
+  onArchive,
   onDelete,
 }: SortableRowProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -127,7 +129,14 @@ const SortableRow = ({
                 <p className="truncate text-xs text-gray-500">📍 {channel.location}</p>
               )}
             </div>
-            <div className="flex shrink-0 gap-1">
+            <div className="flex shrink-0 flex-wrap justify-end gap-1">
+              <button
+                type="button"
+                onClick={onArchive}
+                className="rounded-md border border-gray-300 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50"
+              >
+                隱藏
+              </button>
               <button
                 type="button"
                 onClick={onStartEdit}
@@ -150,9 +159,49 @@ const SortableRow = ({
   );
 };
 
+type ArchivedRowProps = {
+  channel: Channel;
+  onUnarchive: () => void;
+  onDelete: () => void;
+};
+
+const ArchivedRow = ({ channel, onUnarchive, onDelete }: ArchivedRowProps) => (
+  <li className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2 opacity-80">
+    <div className="min-w-0 flex-1 px-1">
+      <p className="truncate text-sm font-medium text-gray-600">{channel.name}</p>
+      {channel.location && (
+        <p className="truncate text-xs text-gray-400">📍 {channel.location}</p>
+      )}
+    </div>
+    <div className="flex shrink-0 gap-1">
+      <button
+        type="button"
+        onClick={onUnarchive}
+        className="rounded-md border border-indigo-300 px-2.5 py-1 text-xs text-indigo-600 hover:bg-indigo-50"
+      >
+        顯示
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="rounded-md border border-rose-300 px-2.5 py-1 text-xs text-rose-500 hover:bg-rose-50"
+      >
+        刪除
+      </button>
+    </div>
+  </li>
+);
+
 export const ChannelManager = ({ onClose }: ChannelManagerProps) => {
   const { channelsApi } = useAppContext();
-  const { channels, addChannel, updateChannel, deleteChannel, reorderChannels } = channelsApi;
+  const {
+    channels,
+    addChannel,
+    updateChannel,
+    deleteChannel,
+    reorderChannels,
+    setChannelArchived,
+  } = channelsApi;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -166,6 +215,9 @@ export const ChannelManager = ({ onClose }: ChannelManagerProps) => {
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  const activeChannels = useMemo(() => channels.filter((c) => !c.isArchived), [channels]);
+  const archivedChannels = useMemo(() => channels.filter((c) => c.isArchived), [channels]);
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,11 +275,11 @@ export const ChannelManager = ({ onClose }: ChannelManagerProps) => {
   };
 
   return (
-    <div className="space-y-4 rounded-2xl bg-white p-5 shadow-lg">
+    <div className="max-h-[85vh] space-y-4 overflow-y-auto rounded-2xl bg-white p-5 shadow-lg">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">通路管理</h2>
-          <p className="text-xs text-gray-400">市集、IG、朋友訂購…都建在這</p>
+          <p className="text-xs text-gray-400">不會再去的市集可以「隱藏」，舊紀錄保留</p>
         </div>
         <button
           type="button"
@@ -238,40 +290,66 @@ export const ChannelManager = ({ onClose }: ChannelManagerProps) => {
         </button>
       </div>
 
-      {channels.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
-          還沒有通路，在下方新增第一個
+      <section className="space-y-2">
+        <div className="flex items-baseline justify-between">
+          <h3 className="text-xs font-semibold text-gray-700">啟用中</h3>
+          <span className="text-xs text-gray-400">{activeChannels.length} 個</span>
         </div>
-      ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={channels.map((c) => c.id)}
-            strategy={verticalListSortingStrategy}
+        {activeChannels.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
+            目前沒有啟用中的通路
+          </div>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
           >
-            <ul className="space-y-2">
-              {channels.map((c) => (
-                <SortableRow
-                  key={c.id}
-                  channel={c}
-                  isEditing={editingId === c.id}
-                  editName={editName}
-                  editLocation={editLocation}
-                  isDragDisabled={editingId !== null}
-                  onStartEdit={() => handleStartEdit(c)}
-                  onSaveEdit={handleSaveEdit}
-                  onCancelEdit={handleCancelEdit}
-                  onChangeName={setEditName}
-                  onChangeLocation={setEditLocation}
-                  onDelete={() => handleDelete(c)}
-                />
-              ))}
-            </ul>
-          </SortableContext>
-        </DndContext>
+            <SortableContext
+              items={activeChannels.map((c) => c.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="space-y-2">
+                {activeChannels.map((c) => (
+                  <SortableRow
+                    key={c.id}
+                    channel={c}
+                    isEditing={editingId === c.id}
+                    editName={editName}
+                    editLocation={editLocation}
+                    isDragDisabled={editingId !== null}
+                    onStartEdit={() => handleStartEdit(c)}
+                    onSaveEdit={handleSaveEdit}
+                    onCancelEdit={handleCancelEdit}
+                    onChangeName={setEditName}
+                    onChangeLocation={setEditLocation}
+                    onArchive={() => setChannelArchived(c.id, true)}
+                    onDelete={() => handleDelete(c)}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
+        )}
+      </section>
+
+      {archivedChannels.length > 0 && (
+        <section className="space-y-2">
+          <div className="flex items-baseline justify-between">
+            <h3 className="text-xs font-semibold text-gray-700">已隱藏</h3>
+            <span className="text-xs text-gray-400">{archivedChannels.length} 個</span>
+          </div>
+          <ul className="space-y-2">
+            {archivedChannels.map((c) => (
+              <ArchivedRow
+                key={c.id}
+                channel={c}
+                onUnarchive={() => setChannelArchived(c.id, false)}
+                onDelete={() => handleDelete(c)}
+              />
+            ))}
+          </ul>
+        </section>
       )}
 
       <form onSubmit={handleAdd} className="space-y-2 border-t border-gray-100 pt-3">
