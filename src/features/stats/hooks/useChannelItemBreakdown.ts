@@ -19,7 +19,7 @@ export type ChannelGroup = {
 };
 
 const UNASSIGNED_CHANNEL = '未指定通路';
-const UNKNOWN_SERIES = '未知系列';
+const UNKNOWN_SERIES = '未知分類';
 
 const resolveSeries = (item: CartItem, productMap: Map<string, Product>): string =>
   item.productSeries ?? productMap.get(item.productId)?.series ?? UNKNOWN_SERIES;

@@ -90,7 +90,7 @@ export const SalesPage = () => {
         <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
           {activeProducts.length === 0
             ? '目前沒有上架商品，請至「商品」新增'
-            : '此系列目前沒有商品'}
+            : '此分類目前沒有商品'}
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-2 sm:gap-3">

@@ -6,7 +6,7 @@ type BreakdownModeToggleProps = {
 };
 
 const OPTIONS: Array<{ key: BreakdownMode; label: string }> = [
-  { key: 'series', label: '系列' },
+  { key: 'series', label: '分類' },
   { key: 'product', label: '商品' },
 ];
 

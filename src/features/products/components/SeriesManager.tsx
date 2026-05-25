@@ -202,7 +202,7 @@ export const SeriesManager = ({ onClose }: SeriesManagerProps) => {
       window.alert(`「${name}」目前有 ${count} 個商品使用，無法刪除`);
       return;
     }
-    if (!window.confirm(`確定刪除系列「${name}」？`)) return;
+    if (!window.confirm(`確定刪除分類「${name}」？`)) return;
     const result = deleteSeries(name);
     if (!result.isOk) {
       setError(result.reason ?? '刪除失敗');
@@ -222,7 +222,7 @@ export const SeriesManager = ({ onClose }: SeriesManagerProps) => {
     <div className="space-y-4 rounded-2xl bg-white p-5 shadow-lg">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">系列管理</h2>
+          <h2 className="text-lg font-semibold text-gray-900">分類管理</h2>
           <p className="text-xs text-gray-400">長按左側 ⋮⋮ 拖曳排序</p>
         </div>
         <button
@@ -236,7 +236,7 @@ export const SeriesManager = ({ onClose }: SeriesManagerProps) => {
 
       {seriess.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
-          還沒有系列
+          還沒有分類
         </div>
       ) : (
         <DndContext
@@ -271,7 +271,7 @@ export const SeriesManager = ({ onClose }: SeriesManagerProps) => {
           type="text"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          placeholder="新增系列名稱"
+          placeholder="新增分類名稱"
           className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
         />
         <button

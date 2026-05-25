@@ -16,11 +16,11 @@ const currentYear = new Date().getFullYear();
 const pad = (n: number): string => n.toString().padStart(2, '0');
 
 const COLUMN_LABEL: Record<BreakdownMode, string> = {
-  series: '系列',
+  series: '分類',
   product: '商品名稱',
 };
 
-const UNKNOWN_SERIES = '未知系列';
+const UNKNOWN_SERIES = '未知分類';
 
 export const YearlyReport = () => {
   const { salesApi, productsApi } = useAppContext();
@@ -154,7 +154,7 @@ export const YearlyReport = () => {
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-gray-700">
-            通路 × {breakdownMode === 'series' ? '系列' : '商品'}（全年）
+            通路 × {breakdownMode === 'series' ? '分類' : '商品'}（全年）
           </h2>
           <div className="flex items-center gap-2">
             <BreakdownModeToggle value={breakdownMode} onChange={setBreakdownMode} />

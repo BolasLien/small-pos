@@ -55,7 +55,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     (name) => {
       const count = productsApi.countBySeries(name);
       if (count > 0) {
-        return { isOk: false, reason: `有 ${count} 個商品仍使用此系列，請先改用其他系列` };
+        return { isOk: false, reason: `有 ${count} 個商品仍使用此分類，請先改用其他分類` };
       }
       rawSeries.deleteSeriesRaw(name);
       return { isOk: true };

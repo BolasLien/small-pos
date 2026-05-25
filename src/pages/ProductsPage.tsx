@@ -52,7 +52,7 @@ export const ProductsPage = () => {
             onClick={() => setIsSeriesOpen(true)}
             className="rounded-full border border-indigo-300 px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
           >
-            管理系列
+            管理分類
           </button>
           <button
             type="button"

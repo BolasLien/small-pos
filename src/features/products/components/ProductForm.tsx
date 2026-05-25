@@ -143,14 +143,14 @@ export const ProductForm = ({ initial, onSubmit, onCancel }: ProductFormProps) =
       </label>
 
       <label className="block space-y-1">
-        <span className="text-sm text-gray-600">系列</span>
+        <span className="text-sm text-gray-600">分類</span>
         <select
           value={draft.series}
           onChange={(e) => setDraft((d) => ({ ...d, series: e.target.value }))}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none"
           required
         >
-          {seriesOptions.length === 0 && <option value="">請先新增系列</option>}
+          {seriesOptions.length === 0 && <option value="">請先新增分類</option>}
           {seriesOptions.map((s) => (
             <option key={s} value={s}>
               {s}

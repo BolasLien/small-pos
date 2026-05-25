@@ -27,7 +27,7 @@ const isAfter = (a: YM, b: YM): boolean =>
 const pad = (n: number): string => n.toString().padStart(2, '0');
 
 const COLUMN_LABEL: Record<BreakdownMode, string> = {
-  series: '系列',
+  series: '分類',
   product: '商品名稱',
 };
 
@@ -146,7 +146,7 @@ export const MonthlyReport = () => {
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-gray-700">
-            通路 × {breakdownMode === 'series' ? '系列' : '商品'}
+            通路 × {breakdownMode === 'series' ? '分類' : '商品'}
           </h2>
           <div className="flex items-center gap-2">
             <BreakdownModeToggle value={breakdownMode} onChange={setBreakdownMode} />
