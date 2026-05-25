@@ -3,32 +3,34 @@ import { useAppContext } from '../store/AppContext';
 import { SaleRecordItem } from '../features/sales/components/SaleRecordItem';
 import { downloadCsv, toCsv } from '../utils/csv';
 import { formatDateTime } from '../utils/date';
+import { formatChannelLabel } from '../features/sales/types';
 
-const ALL_MARKETS = '__all__';
+const ALL = '__all__';
 
 export const RecordsPage = () => {
-  const { salesApi, productsApi } = useAppContext();
+  const { salesApi, productsApi, channelsApi } = useAppContext();
   const { sales, deleteSale } = salesApi;
   const { adjustStock } = productsApi;
+  const { channels } = channelsApi;
 
-  const [marketFilter, setMarketFilter] = useState<string>(ALL_MARKETS);
+  const [channelFilter, setChannelFilter] = useState<string>(ALL);
 
-  const marketOptions = useMemo(() => {
-    const set = new Set<string>();
+  const channelOptions = useMemo(() => {
+    const labelSet = new Set<string>();
+    channels.forEach((c) => labelSet.add(formatChannelLabel(c.name, c.location)));
     sales.forEach((s) => {
-      const label = [s.marketName, s.marketLocation].filter(Boolean).join(' ・ ');
-      if (label) set.add(label);
+      const label = formatChannelLabel(s.channelName, s.channelLocation);
+      if (label) labelSet.add(label);
     });
-    return [...set];
-  }, [sales]);
+    return [...labelSet].filter((s) => s !== '');
+  }, [channels, sales]);
 
   const filteredSales = useMemo(() => {
-    if (marketFilter === ALL_MARKETS) return sales;
-    return sales.filter((s) => {
-      const label = [s.marketName, s.marketLocation].filter(Boolean).join(' ・ ');
-      return label === marketFilter;
-    });
-  }, [sales, marketFilter]);
+    if (channelFilter === ALL) return sales;
+    return sales.filter(
+      (s) => formatChannelLabel(s.channelName, s.channelLocation) === channelFilter,
+    );
+  }, [sales, channelFilter]);
 
   const handleDelete = (id: string) => {
     const removed = deleteSale(id);
@@ -39,8 +41,9 @@ export const RecordsPage = () => {
   const handleExport = () => {
     const headers = [
       '交易時間',
-      '市集名稱',
+      '通路',
       '地點',
+      '備註',
       '支付方式',
       '商品名稱',
       '單價',
@@ -51,8 +54,9 @@ export const RecordsPage = () => {
     const rows = filteredSales.flatMap((sale) =>
       sale.items.map((item) => [
         formatDateTime(sale.createdAt),
-        sale.marketName ?? '',
-        sale.marketLocation ?? '',
+        sale.channelName ?? '',
+        sale.channelLocation ?? '',
+        sale.note ?? '',
         sale.paymentMethod,
         item.productName,
         item.price,
@@ -83,29 +87,27 @@ export const RecordsPage = () => {
         </button>
       </header>
 
-      {marketOptions.length > 0 && (
-        <div>
-          <label className="block space-y-1">
-            <span className="text-xs text-gray-500">依市集篩選</span>
-            <select
-              value={marketFilter}
-              onChange={(e) => setMarketFilter(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-            >
-              <option value={ALL_MARKETS}>全部市集</option>
-              {marketOptions.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+      {channelOptions.length > 0 && (
+        <label className="block space-y-1">
+          <span className="text-xs text-gray-500">依通路篩選</span>
+          <select
+            value={channelFilter}
+            onChange={(e) => setChannelFilter(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+          >
+            <option value={ALL}>全部通路</option>
+            {channelOptions.map((label) => (
+              <option key={label} value={label}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
       )}
 
       {filteredSales.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
-          {sales.length === 0 ? '還沒有銷售紀錄' : '此市集沒有紀錄'}
+          {sales.length === 0 ? '還沒有銷售紀錄' : '此通路沒有紀錄'}
         </div>
       ) : (
         <ul className="space-y-3">

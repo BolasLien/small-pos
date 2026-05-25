@@ -1,23 +1,27 @@
 import { useMemo, useState } from 'react';
 import { useAppContext } from '../store/AppContext';
 import { useCart } from '../features/sales/hooks/useCart';
-import { useMarketSession } from '../features/sales/hooks/useMarketSession';
+import { useCurrentChannel } from '../features/sales/hooks/useCurrentChannel';
 import { ProductCard } from '../components/ProductCard/ProductCard';
 import { CartPanel } from '../components/CartPanel/CartPanel';
 import { PaymentMethodSelector } from '../features/sales/components/PaymentMethodSelector';
 import { SeriesTabs, type SeriesFilter } from '../features/sales/components/SeriesTabs';
-import { MarketSessionBar } from '../features/sales/components/MarketSessionBar';
+import { ChannelPicker } from '../features/sales/components/ChannelPicker';
+import { ChannelManager } from '../features/sales/components/ChannelManager';
 import type { PaymentMethod } from '../features/sales/types';
 
 export const SalesPage = () => {
-  const { productsApi, salesApi, seriesApi } = useAppContext();
+  const { productsApi, salesApi, seriesApi, channelsApi } = useAppContext();
   const { products, adjustStock } = productsApi;
   const { addSale } = salesApi;
-  const { market, setMarket } = useMarketSession();
+  const { channels, addChannel } = channelsApi;
+  const { currentChannelId, currentChannel, setCurrentChannelId } = useCurrentChannel(channels);
   const { cartItems, totalAmount, addToCart, increase, decrease, remove, clear } = useCart();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [seriesFilter, setSeriesFilter] = useState<SeriesFilter>(null);
+  const [note, setNote] = useState('');
+  const [isChannelManagerOpen, setIsChannelManagerOpen] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const activeProducts = useMemo(() => products.filter((p) => p.isActive), [products]);
@@ -29,11 +33,6 @@ export const SalesPage = () => {
     const orphans = [...present].filter((s) => !seriesApi.seriess.includes(s));
     return [...ordered, ...orphans];
   }, [activeProducts, seriesApi.seriess]);
-
-  const filteredProducts = useMemo(() => {
-    if (seriesFilter === null) return activeProducts;
-    return activeProducts.filter((p) => p.series === seriesFilter);
-  }, [activeProducts, seriesFilter]);
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -51,10 +50,11 @@ export const SalesPage = () => {
 
   const handleCheckout = () => {
     if (cartItems.length === 0 || !paymentMethod) return;
-    addSale(paymentMethod, cartItems, market);
+    addSale(paymentMethod, cartItems, currentChannel, note);
     cartItems.forEach((it) => adjustStock(it.productId, -it.quantity));
     clear();
     setPaymentMethod(null);
+    setNote('');
     showToast('success', `已完成交易 $${totalAmount}`);
   };
 
@@ -67,7 +67,13 @@ export const SalesPage = () => {
         <p className="text-xs text-gray-500">點商品加入交易，選好支付方式即可結帳</p>
       </header>
 
-      <MarketSessionBar market={market} onChange={setMarket} />
+      <ChannelPicker
+        channels={channels}
+        currentId={currentChannelId}
+        onSelect={setCurrentChannelId}
+        onOpenManager={() => setIsChannelManagerOpen(true)}
+        onQuickAdd={addChannel}
+      />
 
       {availableSeries.length > 1 && (
         <SeriesTabs
@@ -77,7 +83,10 @@ export const SalesPage = () => {
         />
       )}
 
-      {filteredProducts.length === 0 ? (
+      {(seriesFilter === null
+        ? activeProducts
+        : activeProducts.filter((p) => p.series === seriesFilter)
+      ).length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
           {activeProducts.length === 0
             ? '目前沒有上架商品，請至「商品」新增'
@@ -85,7 +94,10 @@ export const SalesPage = () => {
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          {filteredProducts.map((p) => {
+          {(seriesFilter === null
+            ? activeProducts
+            : activeProducts.filter((p) => p.series === seriesFilter)
+          ).map((p) => {
             const cartQuantity = cartItems.find((it) => it.productId === p.id)?.quantity ?? 0;
             return (
               <ProductCard
@@ -109,7 +121,22 @@ export const SalesPage = () => {
       />
 
       {cartItems.length > 0 && (
-        <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} />
+        <>
+          <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} />
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700" htmlFor="sale-note">
+              備註（選填）
+            </label>
+            <textarea
+              id="sale-note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={2}
+              placeholder="例如：客人指定包裝、IG 私訊訂單編號…"
+              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+        </>
       )}
 
       <div
@@ -131,6 +158,22 @@ export const SalesPage = () => {
           </button>
         </div>
       </div>
+
+      {isChannelManagerOpen && (
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          onClick={() => setIsChannelManagerOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+            role="presentation"
+          >
+            <ChannelManager onClose={() => setIsChannelManagerOpen(false)} />
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div

@@ -10,10 +10,13 @@ export type CartItem = {
   subtotal: number;
 };
 
-export type MarketInfo = {
+export type Channel = {
+  id: string;
   name: string;
-  location: string;
+  location?: string;
 };
+
+export type ChannelDraft = Omit<Channel, 'id'>;
 
 export type SaleRecord = {
   id: string;
@@ -21,6 +24,14 @@ export type SaleRecord = {
   paymentMethod: PaymentMethod;
   totalAmount: number;
   items: CartItem[];
-  marketName?: string;
-  marketLocation?: string;
+  channelName?: string;
+  channelLocation?: string;
+  note?: string;
+};
+
+export const formatChannelLabel = (name?: string, location?: string): string => {
+  if (!name && !location) return '';
+  if (!location) return name ?? '';
+  if (!name) return location;
+  return `${name} ・ ${location}`;
 };

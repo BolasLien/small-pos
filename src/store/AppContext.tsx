@@ -6,6 +6,10 @@ import {
   type SeriesResult,
   type UseSeriesResult,
 } from '../features/products/hooks/useSeries';
+import {
+  useChannels,
+  type UseChannelsResult,
+} from '../features/sales/hooks/useChannels';
 
 export type SeriesActions = {
   seriess: string[];
@@ -21,6 +25,7 @@ type AppContextValue = {
   productsApi: UseProductsResult;
   salesApi: UseSalesResult;
   seriesApi: SeriesActions;
+  channelsApi: UseChannelsResult;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -33,6 +38,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const productsApi = useProducts();
   const salesApi = useSales();
   const rawSeries = useSeries();
+  const channelsApi = useChannels();
 
   const renameSeries = useCallback<SeriesActions['renameSeries']>(
     (oldName, newName) => {
@@ -71,7 +77,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   );
 
   return (
-    <AppContext.Provider value={{ productsApi, salesApi, seriesApi }}>
+    <AppContext.Provider value={{ productsApi, salesApi, seriesApi, channelsApi }}>
       {children}
     </AppContext.Provider>
   );
