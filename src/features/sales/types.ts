@@ -5,6 +5,7 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export type CartItem = {
   productId: string;
   productName: string;
+  productSeries?: string;
   price: number;
   quantity: number;
   subtotal: number;

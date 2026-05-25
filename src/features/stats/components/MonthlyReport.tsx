@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useAppContext } from '../../../store/AppContext';
 import { useMonthlyStats } from '../hooks/useMonthlyStats';
+import { useChannelSeriesBreakdown } from '../hooks/useChannelSeriesBreakdown';
 import { StatCard } from './StatCard';
+import { ChannelSeriesBreakdown } from './ChannelSeriesBreakdown';
 import { PAYMENT_METHODS } from '../../sales/types';
+import { downloadCsv, toCsv } from '../../../utils/csv';
 
 type YM = { year: number; month: number };
 
@@ -17,16 +20,29 @@ const shiftMonth = ({ year, month }: YM, delta: number): YM => {
 const isAfter = (a: YM, b: YM): boolean =>
   a.year > b.year || (a.year === b.year && a.month > b.month);
 
+const pad = (n: number): string => n.toString().padStart(2, '0');
+
 export const MonthlyReport = () => {
-  const { salesApi } = useAppContext();
+  const { salesApi, productsApi } = useAppContext();
   const [ym, setYm] = useState<YM>(initialYM);
 
   const stats = useMonthlyStats(salesApi.sales, ym.year, ym.month);
+  const breakdown = useChannelSeriesBreakdown(stats.monthSales, productsApi.products);
 
-  const isAtCurrent = useMemo(
-    () => !isAfter(shiftMonth(ym, 1), initialYM),
+  const isNextDisabled = useMemo(
+    () => isAfter(shiftMonth(ym, 1), initialYM),
     [ym],
   );
+
+  const handleExport = () => {
+    const headers = ['通路', '系列', '數量', '收入'];
+    const rows = breakdown.flatMap((g) =>
+      g.bySeries.map((s) => [g.label, s.series, s.quantity, s.revenue]),
+    );
+    if (rows.length === 0) return;
+    const csv = toCsv(headers, rows);
+    downloadCsv(`monthly-${ym.year}-${pad(ym.month + 1)}.csv`, csv);
+  };
 
   return (
     <div className="space-y-5">
@@ -48,7 +64,7 @@ export const MonthlyReport = () => {
         <button
           type="button"
           onClick={() => setYm((cur) => shiftMonth(cur, 1))}
-          disabled={isAtCurrent}
+          disabled={isNextDisabled}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
           aria-label="下一個月"
         >
@@ -62,7 +78,17 @@ export const MonthlyReport = () => {
       </div>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-gray-700">各通路收入</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-700">各通路收入</h2>
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={breakdown.length === 0}
+            className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-gray-300"
+          >
+            匯出 CSV
+          </button>
+        </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           {stats.channelBreakdowns.length === 0 ? (
             <p className="py-4 text-center text-sm text-gray-500">本月沒有銷售紀錄</p>
@@ -108,6 +134,11 @@ export const MonthlyReport = () => {
             </ul>
           )}
         </div>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold text-gray-700">通路 × 系列</h2>
+        <ChannelSeriesBreakdown groups={breakdown} />
       </section>
 
       <section className="space-y-2">

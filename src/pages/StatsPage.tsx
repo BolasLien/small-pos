@@ -3,15 +3,23 @@ import { useAppContext } from '../store/AppContext';
 import { useTodayStats } from '../features/stats/hooks/useTodayStats';
 import { StatCard } from '../features/stats/components/StatCard';
 import { MonthlyReport } from '../features/stats/components/MonthlyReport';
+import { YearlyReport } from '../features/stats/components/YearlyReport';
 import { formatTodayLabel } from '../utils/date';
 import { PAYMENT_METHODS } from '../features/sales/types';
 
-type StatsMode = 'today' | 'monthly';
+type StatsMode = 'today' | 'monthly' | 'yearly';
 
 const MODES: Array<{ key: StatsMode; label: string }> = [
   { key: 'today', label: '今日' },
   { key: 'monthly', label: '月報' },
+  { key: 'yearly', label: '年報' },
 ];
+
+const MODE_HINT: Record<StatsMode, string> = {
+  today: '',
+  monthly: '依月份查看通路收入',
+  yearly: '依年份查看通路與月份趨勢',
+};
 
 export const StatsPage = () => {
   const { salesApi } = useAppContext();
@@ -24,7 +32,7 @@ export const StatsPage = () => {
       <header>
         <h1 className="text-xl font-bold text-gray-900">統計</h1>
         <p className="text-xs text-gray-500">
-          {mode === 'today' ? formatTodayLabel() : '依月份查看通路收入'}
+          {mode === 'today' ? formatTodayLabel() : MODE_HINT[mode]}
         </p>
       </header>
 
@@ -48,7 +56,7 @@ export const StatsPage = () => {
         })}
       </div>
 
-      {mode === 'today' ? (
+      {mode === 'today' && (
         <>
           <div className="grid grid-cols-2 gap-3">
             <StatCard label="今日總收入" value={`$${stats.totalRevenue}`} />
@@ -107,9 +115,10 @@ export const StatsPage = () => {
             </div>
           </section>
         </>
-      ) : (
-        <MonthlyReport />
       )}
+
+      {mode === 'monthly' && <MonthlyReport />}
+      {mode === 'yearly' && <YearlyReport />}
     </div>
   );
 };

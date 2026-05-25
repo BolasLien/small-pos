@@ -45,6 +45,7 @@ export const useCart = (): UseCartResult => {
         recompute({
           productId: product.id,
           productName: product.name,
+          productSeries: product.series,
           price: product.price,
           quantity: 1,
           subtotal: 0,
